@@ -1,4 +1,4 @@
-import { useId, type CSSProperties, type ReactNode } from 'react';
+import { useId, useState, type CSSProperties, type ReactNode } from 'react';
 import { Icon, type IconName } from './Icon';
 import { ROLE_META, type Role } from '../domain/types';
 
@@ -117,6 +117,53 @@ export function NumberField({
   compact?: boolean;
 }) {
   const id = useId();
+  const [draft, setDraft] = useState<string | null>(null);
+
+  const clampValue = (next: number) =>
+    Math.min(max ?? Number.POSITIVE_INFINITY, Math.max(min, next));
+
+  const commit = () => {
+    if (draft === null) return;
+
+    const raw = draft.trim().replace(',', '.');
+    const parsed = Number(raw);
+
+    if (raw === '' || Number.isNaN(parsed)) {
+      setDraft(null);
+      return;
+    }
+
+    const next = clampValue(parsed);
+    setDraft(null);
+
+    if (next !== value) {
+      onChange(next);
+    }
+  };
+
+  const handleChange = (raw: string) => {
+    if (raw === '') {
+      setDraft('');
+      return;
+    }
+
+    // Un cero a la izquierda no aporta valor (05 → 5), pero se conserva en 0.
+    const cleaned = raw.replace(/^0+(?=\d)/, '');
+    const parsed = Number(cleaned.replace(',', '.'));
+
+    if (Number.isNaN(parsed)) {
+      setDraft(cleaned);
+      return;
+    }
+
+    setDraft(cleaned);
+
+    const next = clampValue(parsed);
+    if (next !== value) {
+      onChange(next);
+    }
+  };
+
   return (
     <div className={`field ${compact ? 'field-compact' : ''}`.trim()}>
       <label htmlFor={id}>{label}</label>
@@ -125,19 +172,17 @@ export function NumberField({
           id={id}
           type="number"
           inputMode="numeric"
-          value={value}
+          value={draft ?? String(value)}
           min={min}
           max={max}
           step={step}
-          onChange={(event) => {
-            const raw = event.target.value;
-            if (raw === '') {
-              onChange(min);
-              return;
+          onFocus={(event) => event.currentTarget.select()}
+          onChange={(event) => handleChange(event.target.value)}
+          onBlur={commit}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter') {
+              event.currentTarget.blur();
             }
-            const parsed = Number(raw);
-            if (Number.isNaN(parsed)) return;
-            onChange(Math.min(max ?? Infinity, Math.max(min, parsed)));
           }}
         />
         {suffix && <span className="input-suffix">{suffix}</span>}

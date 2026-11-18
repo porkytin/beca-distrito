@@ -91,6 +91,43 @@ const viewport = mobile.viewportSize();
 // 4) Parámetros con empate.
 await page.screenshot({ path: `${outDir}/final-params.png` });
 
+// 5) Campos numéricos: escritura dígito a dígito, limpieza y ceros iniciales.
+const inputPage = await browser.newPage({
+  viewport: { width: 1440, height: 1000 },
+});
+await inputPage.goto('http://localhost:5173/?case=inputs#paso-3', {
+  waitUntil: 'domcontentloaded',
+});
+await inputPage.waitForTimeout(900);
+const courseCost = inputPage.getByLabel('Costo del Curso Medio');
+await courseCost.click();
+for (const digit of '150000') {
+  await courseCost.press(digit);
+}
+const costWhileTyping = await courseCost.inputValue();
+await courseCost.blur();
+const costAfterBlur = await courseCost.inputValue();
+
+await inputPage.goto('http://localhost:5173/?case=inputs#paso-1', {
+  waitUntil: 'domcontentloaded',
+});
+await inputPage.waitForTimeout(800);
+const seedInput = inputPage.getByLabel('Semilla del escenario');
+await seedInput.click();
+await seedInput.press('Control+a');
+await seedInput.press('Backspace');
+const seedWhileEmpty = await seedInput.inputValue();
+await seedInput.blur();
+const seedAfterBlur = await seedInput.inputValue();
+
+await seedInput.click();
+await seedInput.press('Control+a');
+await seedInput.press('0');
+await seedInput.press('5');
+const seedLeadingZero = await seedInput.inputValue();
+await seedInput.blur();
+const seedAfterLeadingZero = await seedInput.inputValue();
+
 console.log(
   JSON.stringify(
     {
@@ -102,6 +139,14 @@ console.log(
       lastStepBox,
       viewport,
       errors,
+      numericInputs: {
+        costWhileTyping,
+        costAfterBlur,
+        seedWhileEmpty,
+        seedAfterBlur,
+        seedLeadingZero,
+        seedAfterLeadingZero,
+      },
       pdfSizes: {
         ties: fs.statSync(`${outDir}/ties.pdf`).size,
         empty: fs.statSync(`${outDir}/empty.pdf`).size,
