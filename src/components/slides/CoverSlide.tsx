@@ -8,7 +8,13 @@ const previewRows = [
   { role: 'Otro cargo', amount: 52, tone: '#b45309' },
 ];
 
-export function CoverSlide({ onStart }: { onStart: () => void }) {
+export function CoverSlide({
+  onStart,
+  onShowRules,
+}: {
+  onStart: () => void;
+  onShowRules: () => void;
+}) {
   return (
     <div className="cover">
       <div className="cover-copy">
@@ -29,6 +35,15 @@ export function CoverSlide({ onStart }: { onStart: () => void }) {
           <button type="button" className="btn btn-primary btn-lg" onClick={onStart}>
             Comenzar simulación
             <Icon name="arrowRight" size={19} />
+          </button>
+          <button
+            type="button"
+            className="btn btn-secondary btn-lg"
+            onClick={onShowRules}
+            aria-haspopup="dialog"
+          >
+            <Icon name="scale" size={17} />
+            Ver reglas
           </button>
           <span className="cover-footnote">
             <Icon name="check" size={15} />

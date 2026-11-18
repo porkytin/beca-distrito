@@ -10,6 +10,7 @@ import { BucketsSlide } from './components/slides/BucketsSlide';
 import { RankingSlide } from './components/slides/RankingSlide';
 import { AllocationSlide } from './components/slides/AllocationSlide';
 import { ReportSlide } from './components/slides/ReportSlide';
+import { RulesDialog } from './components/RulesDialog';
 import { generateDataset } from './domain/generate';
 import { buildSimulation } from './domain/simulation';
 import { newSeed, clamp } from './domain/random';
@@ -39,6 +40,7 @@ export default function App() {
   const [params, setParams] = useState<SimulationParams>(DEFAULT_PARAMS);
   const [regularity, setRegularity] = useState<Record<number, boolean>>({});
   const [generatedAt] = useState(() => new Date());
+  const [rulesOpen, setRulesOpen] = useState(false);
 
   const dataset = useMemo(() => generateDataset(random), [random]);
 
@@ -182,6 +184,7 @@ export default function App() {
     const onKeyDown = (event: KeyboardEvent) => {
       const target = event.target as HTMLElement;
       if (['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName)) return;
+      if (target.closest?.('dialog[open]')) return;
       if (event.key === 'ArrowRight') {
         setStep((current) => Math.min(SLIDES.length - 1, current + 1));
       } else if (event.key === 'ArrowLeft') {
@@ -199,7 +202,9 @@ export default function App() {
   const renderSlide = () => {
     switch (step) {
       case 0:
-        return <CoverSlide onStart={goNext} />;
+        return (
+          <CoverSlide onStart={goNext} onShowRules={() => setRulesOpen(true)} />
+        );
       case 1:
         return (
           <GroupsSlide
@@ -314,6 +319,17 @@ export default function App() {
               ? 'Recorrido guiado'
               : `Sección ${step} de ${SLIDES.length - 1}`}
           </span>
+          <button
+            type="button"
+            className="rules-trigger"
+            onClick={() => setRulesOpen(true)}
+            aria-haspopup="dialog"
+            aria-label="Reglas del sistema"
+            title="Ver las reglas del sistema"
+          >
+            <Icon name="scale" size={15} />
+            <span>Reglas</span>
+          </button>
           {step > 0 && (
             <button
               type="button"
@@ -392,6 +408,12 @@ export default function App() {
           </button>
         </div>
       </footer>
+
+      <RulesDialog
+        open={rulesOpen}
+        onClose={() => setRulesOpen(false)}
+        params={params}
+      />
     </div>
   );
 }

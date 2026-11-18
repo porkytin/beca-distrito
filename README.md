@@ -55,6 +55,11 @@ Se puede navegar con los botones, con las flechas del teclado o con las
 secciones de la barra inferior. Cada sección tiene un hash propio, por ejemplo
 `#paso-8`, para poder compartir un enlace directo.
 
+El botón **Reglas** de la barra superior (y **Ver reglas** en la portada) abre
+en cualquier momento un resumen del reglamento: admisibilidad, baldes,
+desempate, reparto, actores y los parámetros vigentes comparados con los
+propuestos por la Comisión.
+
 ## Aleatoriedad ajustable
 
 La semilla hace que un escenario sea reproducible. Además se pueden ajustar:
