@@ -28,7 +28,7 @@ export function BucketsSlide({
   return (
     <div className="slide-inner">
       <SlideHeading
-        eyebrow="Paso 3.2 · Primer ordenamiento"
+        eyebrow="Simulación · Primer ordenamiento"
         title="Baldes de vulnerabilidad socioeconómica"
         lede="El ranking parte por el percentil RSH. Se forma un primer balde desde el postulante más vulnerable y se incorporan todos quienes estén dentro del ancho de tolerancia. Luego se abre el siguiente balde con el postulante que quedó fuera."
       />
@@ -39,7 +39,7 @@ export function BucketsSlide({
           value={formatNumber(simulation.buckets.length)}
           icon="layers"
           hint={`Tolerancia de ${formatDecimal(tolerance, 1)} pp`}
-          accent="var(--violet)"
+          accent="var(--accent)"
         />
         <Stat
           label="Postulantes admitidos"
@@ -62,7 +62,7 @@ export function BucketsSlide({
         />
       </div>
 
-      <InfoNote icon="info" tone="violet">
+      <InfoNote icon="info">
         Dentro de un balde todos se consideran inicialmente empatados en su
         situación socioeconómica. El orden definitivo se resuelve en el
         siguiente paso: primero el cargo, luego la necesidad formativa del
@@ -72,8 +72,8 @@ export function BucketsSlide({
       {simulation.buckets.length === 0 ? (
         <div className="card buckets-empty">
           <EmptyState title="No hay baldes para mostrar" icon="layers">
-            Todos los Grupos están irregulares o no hay postulaciones. Vuelve al
-            Paso 2 o genera nuevos datos.
+            Todos los Grupos están irregulares o no hay postulaciones. Revisa la
+            regularidad de los Grupos o genera nuevos datos.
           </EmptyState>
         </div>
       ) : (

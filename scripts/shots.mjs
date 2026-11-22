@@ -17,7 +17,7 @@ page.on('console', (message) => {
 page.on('pageerror', (error) => errors.push(`pageerror: ${error.message}`));
 
 for (let index = 0; index <= 9; index += 1) {
-  await page.goto(`http://localhost:5173/#paso-${index}`, {
+  await page.goto(`http://localhost:5173/#simulacion/${index}`, {
     waitUntil: 'domcontentloaded',
   });
   await page.waitForTimeout(1800);
@@ -32,7 +32,7 @@ for (let index = 0; index <= 9; index += 1) {
 }
 
 // Interacción: cambiar la curva en Parámetros.
-await page.goto('http://localhost:5173/#paso-5', {
+await page.goto('http://localhost:5173/#simulacion/5', {
   waitUntil: 'domcontentloaded',
 });
 await page.waitForTimeout(900);
@@ -44,7 +44,7 @@ const selectedCurve = await page
 await page.screenshot({ path: `${outDir}/interaction-curve.png` });
 
 // Interacción: cambiar regularidad de un Grupo.
-await page.goto('http://localhost:5173/#paso-4', {
+await page.goto('http://localhost:5173/#simulacion/4', {
   waitUntil: 'domcontentloaded',
 });
 await page.waitForTimeout(900);
@@ -55,7 +55,7 @@ const switchAfter = await page.locator('.group-state-card').first().getAttribute
 await page.screenshot({ path: `${outDir}/interaction-regularity.png` });
 
 // Descarga del PDF.
-await page.goto('http://localhost:5173/#paso-9', {
+await page.goto('http://localhost:5173/#simulacion/9', {
   waitUntil: 'domcontentloaded',
 });
 await page.waitForTimeout(900);
@@ -66,14 +66,62 @@ const pdfPath = `${outDir}/reporte.pdf`;
 await download.saveAs(pdfPath);
 const pdfSize = fs.statSync(pdfPath).size;
 
+// Inicio y modo de cálculo.
+await page.goto('http://localhost:5173/#inicio', {
+  waitUntil: 'domcontentloaded',
+});
+await page.waitForTimeout(700);
+await page.screenshot({ path: `${outDir}/inicio.png` });
+
+await page.goto('http://localhost:5173/#calculo/datos', {
+  waitUntil: 'domcontentloaded',
+});
+await page.waitForTimeout(700);
+await page.getByRole('button', { name: 'Cargar datos de ejemplo' }).click();
+await page.waitForTimeout(600);
+await page.screenshot({ path: `${outDir}/calculo-datos.png`, fullPage: true });
+
+await page.getByRole('tab', { name: 'Parámetros' }).click();
+await page.waitForTimeout(500);
+await page.screenshot({ path: `${outDir}/calculo-parametros.png`, fullPage: true });
+
+await page.getByRole('tab', { name: 'Resultado' }).click();
+await page.waitForTimeout(500);
+await page.screenshot({ path: `${outDir}/calculo-resultado.png`, fullPage: true });
+
+const csvPromise = page.waitForEvent('download');
+await page.getByRole('button', { name: 'Exportar CSV' }).click();
+const csv = await csvPromise;
+await csv.saveAs(`${outDir}/nomina.csv`);
+
+const calcPdfPromise = page.waitForEvent('download');
+await page.getByRole('button', { name: 'Descargar PDF' }).click();
+const calcPdf = await calcPdfPromise;
+await calcPdf.saveAs(`${outDir}/calculo.pdf`);
+
+const calcRows = await page.locator('.result-table tbody tr').count();
+const csvSize = fs.statSync(`${outDir}/nomina.csv`).size;
+const calcPdfSize = fs.statSync(`${outDir}/calculo.pdf`).size;
+
 // Vista móvil.
 const mobile = await browser.newPage({ viewport: { width: 390, height: 844 } });
 for (const index of [0, 1, 3, 5, 8, 9]) {
-  await mobile.goto(`http://localhost:5173/#paso-${index}`, {
+  await mobile.goto(`http://localhost:5173/#simulacion/${index}`, {
     waitUntil: 'domcontentloaded',
   });
   await mobile.waitForTimeout(1400);
   await mobile.screenshot({ path: `${outDir}/mobile${index}.png` });
+}
+for (const [name, hash] of [
+  ['mobile-inicio', '#inicio'],
+  ['mobile-calculo', '#calculo/datos'],
+  ['mobile-resultado', '#calculo/resultado'],
+]) {
+  await mobile.goto(`http://localhost:5173/${hash}`, {
+    waitUntil: 'domcontentloaded',
+  });
+  await mobile.waitForTimeout(1200);
+  await mobile.screenshot({ path: `${outDir}/${name}.png`, fullPage: true });
 }
 
 console.log(
@@ -82,6 +130,9 @@ console.log(
       selectedCurve,
       regularityChanged: switchBefore !== switchAfter,
       pdfSize,
+      calcRows,
+      csvSize,
+      calcPdfSize,
       errors,
     },
     null,

@@ -1,6 +1,12 @@
 import { allocate } from '../src/domain/allocation';
 import { DEFAULT_PARAMS, DEFAULT_RANDOM } from '../src/domain/defaults';
 import { generateDataset } from '../src/domain/generate';
+import {
+  groupRatio,
+  normalizeParams,
+  parseCalculation,
+  sampleCalculation,
+} from '../src/domain/manual';
 import { buildRanking } from '../src/domain/ranking';
 import { buildSimulation } from '../src/domain/simulation';
 import { CURVES, type SimulationParams } from '../src/domain/types';
@@ -194,5 +200,101 @@ const fullBudget = buildSimulation(dataset.groups, dataset.applicants, {
   budget: DEFAULT_PARAMS.courseCost * dataset.applicants.length,
 });
 assert(fullBudget.allocation.caseA, 'exact budget is case A');
+
+// Datos manuales: ratio derivado, normalización e importación.
+assert(groupRatio(0, 0) === 0, 'empty group ratio must be zero');
+assert(Math.abs(groupRatio(10, 2) - 0.2) < 1e-9, 'group ratio mismatch');
+
+const manual = sampleCalculation();
+assert(manual.groups.length > 0, 'sample must include groups');
+assert(manual.applicants.length > 0, 'sample must include applicants');
+
+const staleRatio = manual.applicants.map((applicant) => ({
+  ...applicant,
+  groupRatio: 99,
+}));
+const recalculated = buildSimulation(
+  manual.groups,
+  staleRatio,
+  manual.params,
+);
+for (const member of recalculated.ranked) {
+  const group = manual.groups.find(
+    (candidate) => candidate.id === member.applicant.groupId,
+  );
+  assert(
+    group !== undefined &&
+      Math.abs(member.applicant.groupRatio - group.ratio) < 1e-9,
+    'ranking must use the current group ratio',
+  );
+}
+
+const staleGroups = manual.groups.map((group) => ({
+  ...group,
+  ratio: 99,
+}));
+const derivedFromGroups = buildSimulation(
+  staleGroups,
+  manual.applicants,
+  manual.params,
+);
+for (const member of derivedFromGroups.ranked) {
+  const group = manual.groups.find(
+    (candidate) => candidate.id === member.applicant.groupId,
+  );
+  assert(
+    group !== undefined &&
+      Math.abs(
+        member.applicant.groupRatio -
+          (group.nnj > 0 ? group.nivelMedio / group.nnj : 0),
+      ) < 1e-9,
+    'ranking must ignore stale stored group ratios',
+  );
+}
+
+const imported = parseCalculation(JSON.parse(JSON.stringify(manual)));
+assert(imported !== null, 'valid backup must be parsed');
+assert(
+  imported !== null && imported.groups.length === manual.groups.length,
+  'backup must keep groups',
+);
+assert(
+  imported !== null && imported.applicants.length === manual.applicants.length,
+  'backup must keep applicants',
+);
+assert(
+  imported !== null &&
+    imported.applicants.every((applicant) => {
+      const group = imported.groups.find(
+        (candidate) => candidate.id === applicant.groupId,
+      );
+      return (
+        group !== undefined &&
+        Math.abs(applicant.groupRatio - group.ratio) < 1e-9
+      );
+    }),
+  'imported applicants must use the imported group ratio',
+);
+
+assert(parseCalculation(null) === null, 'null backup must be rejected');
+assert(parseCalculation({}) === null, 'empty object must be rejected');
+assert(
+  parseCalculation({ groups: [], applicants: [], params: {} }) !== null,
+  'empty but valid backup must be accepted',
+);
+
+const normalized = normalizeParams({
+  ...DEFAULT_PARAMS,
+  budget: 1_500_000.4,
+  courseCost: -10,
+  tolerance: 99,
+  maxDiff: -3,
+  minRatioDiff: 4,
+});
+assert(normalized.budget === 1_500_000, 'budget must be rounded');
+assert(normalized.courseCost === 0, 'course cost must be clamped');
+assert(normalized.tolerance === 20, 'tolerance must be clamped');
+assert(normalized.maxDiff === 0, 'max difference must be clamped');
+assert(normalized.minRatioDiff === 1, 'ratio threshold must be clamped');
 
 console.log(`OK · ${checks.toLocaleString('es-CL')} comprobaciones`);

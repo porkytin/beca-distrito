@@ -4,6 +4,7 @@ export type IconName =
   | 'arrowLeft'
   | 'arrowRight'
   | 'arrowUpRight'
+  | 'calculator'
   | 'check'
   | 'chevronRight'
   | 'coins'
@@ -13,13 +14,15 @@ export type IconName =
   | 'group'
   | 'info'
   | 'layers'
+  | 'list'
+  | 'plus'
   | 'refresh'
   | 'scale'
   | 'shuffle'
   | 'sliders'
-  | 'sparkles'
   | 'target'
-  | 'trophy'
+  | 'trash'
+  | 'upload'
   | 'users'
   | 'x';
 
@@ -33,6 +36,12 @@ export function Icon({ name, size = 18, ...props }: IconProps) {
     arrowLeft: <path d="M19 12H5m0 0 6-6m-6 6 6 6" />,
     arrowRight: <path d="M5 12h14m0 0-6-6m6 6-6 6" />,
     arrowUpRight: <path d="M7 17 17 7m0 0H8m9 0v9" />,
+    calculator: (
+      <>
+        <rect x="5" y="3" width="14" height="18" rx="2" />
+        <path d="M8 7h8M8 11h2M12 11h2M16 11h.01M8 15h2M12 15h2M16 15h.01M8 18h2M12 18h2M16 18h.01" />
+      </>
+    ),
     check: <path d="m5 12 4.5 4.5L19 7" />,
     chevronRight: <path d="m9 18 6-6-6-6" />,
     coins: (
@@ -79,6 +88,13 @@ export function Icon({ name, size = 18, ...props }: IconProps) {
         <path d="m3 16 9 5 9-5" />
       </>
     ),
+    list: (
+      <>
+        <path d="M9 6h11M9 12h11M9 18h11" />
+        <path d="M4 6h.01M4 12h.01M4 18h.01" />
+      </>
+    ),
+    plus: <path d="M12 5v14M5 12h14" />,
     refresh: (
       <>
         <path d="M20 11a8 8 0 1 0-2.3 5.7" />
@@ -107,13 +123,6 @@ export function Icon({ name, size = 18, ...props }: IconProps) {
         <circle cx="15" cy="18" r="2" />
       </>
     ),
-    sparkles: (
-      <>
-        <path d="m12 3 1.3 4.2L17.5 8.5l-4.2 1.3L12 14l-1.3-4.2-4.2-1.3 4.2-1.3z" />
-        <path d="m19 14 .7 2.3L22 17l-2.3.7L19 20l-.7-2.3L16 17l2.3-.7z" />
-        <path d="m5 14 .7 2.3L8 17l-2.3.7L5 20l-.7-2.3L2 17l2.3-.7z" />
-      </>
-    ),
     target: (
       <>
         <circle cx="12" cy="12" r="9" />
@@ -121,11 +130,16 @@ export function Icon({ name, size = 18, ...props }: IconProps) {
         <circle cx="12" cy="12" r="1" />
       </>
     ),
-    trophy: (
+    trash: (
       <>
-        <path d="M8 4h8v5a4 4 0 0 1-8 0z" />
-        <path d="M8 6H4v1a3 3 0 0 0 3 3h1M16 6h4v1a3 3 0 0 1-3 3h-1" />
-        <path d="M12 13v4M8 21h8M9 17h6" />
+        <path d="M4 7h16M9 7V4h6v3M6 7l1 14h10l1-14" />
+        <path d="M10 11v6M14 11v6" />
+      </>
+    ),
+    upload: (
+      <>
+        <path d="M12 21V9m0 0 5 5m-5-5-5 5" />
+        <path d="M5 3h14" />
       </>
     ),
     users: (

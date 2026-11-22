@@ -72,9 +72,15 @@ interface RulesDialogProps {
   open: boolean;
   onClose: () => void;
   params: SimulationParams;
+  mode: 'simulation' | 'calculation' | 'start';
 }
 
-export function RulesDialog({ open, onClose, params }: RulesDialogProps) {
+export function RulesDialog({
+  open,
+  onClose,
+  params,
+  mode,
+}: RulesDialogProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
 
   useEffect(() => {
@@ -150,9 +156,9 @@ export function RulesDialog({ open, onClose, params }: RulesDialogProps) {
           </div>
           <h2 id="rules-title">Las reglas del sistema</h2>
           <p id="rules-lede">
-            Resumen del Reglamento del Sistema de Becas de Formación. La
-            simulación aplica el mecanismo de asignación del Paso 3 sobre datos
-            ficticios, con los parámetros que puedes ajustar en el recorrido.
+            Resumen del Reglamento del Sistema de Becas de Formación. El
+            mecanismo se aplica sobre los datos ingresados en el modo de cálculo
+            o sobre los datos generados en la simulación.
           </p>
         </div>
         <button
@@ -205,7 +211,7 @@ export function RulesDialog({ open, onClose, params }: RulesDialogProps) {
                 <tr>
                   <th scope="col">Parámetro</th>
                   <th scope="col">Reglamento</th>
-                  <th scope="col">En esta simulación</th>
+                  <th scope="col">Valor actual</th>
                 </tr>
               </thead>
               <tbody>
@@ -218,7 +224,7 @@ export function RulesDialog({ open, onClose, params }: RulesDialogProps) {
                         className={`rules-now ${row.changed ? 'is-custom' : ''}`}
                         title={
                           row.changed
-                            ? 'Ajustado en esta simulación'
+                            ? 'Ajustado en el modo actual'
                             : 'Valor propuesto por la Comisión'
                         }
                       >
@@ -243,10 +249,14 @@ export function RulesDialog({ open, onClose, params }: RulesDialogProps) {
 
       <footer className="rules-foot">
         <span className="rules-foot-note">
-          Simulación con datos ficticios · Todo se ejecuta en tu navegador
+          {mode === 'calculation'
+            ? 'Datos guardados en este navegador · Procesamiento local'
+            : mode === 'simulation'
+              ? 'Datos ficticios · Procesamiento local'
+              : 'Procesamiento local · Sin envío de datos'}
         </span>
         <button type="button" className="btn btn-primary" onClick={onClose}>
-          Entendido
+          Cerrar
           <Icon name="check" size={16} />
         </button>
       </footer>

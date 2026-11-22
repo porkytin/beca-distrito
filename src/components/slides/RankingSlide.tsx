@@ -1,7 +1,19 @@
 import { Icon } from '../Icon';
-import { EmptyState, InfoNote, Panel, RolePill, SlideHeading, TypePill } from '../ui';
+import {
+  EmptyState,
+  InfoNote,
+  Panel,
+  RolePill,
+  SlideHeading,
+  TypePill,
+} from '../ui';
 import { formatDecimal, formatNumber, formatRatio } from '../../domain/format';
-import type { Group, RankedApplicant, SimulationParams } from '../../domain/types';
+import {
+  ROLE_META,
+  type Group,
+  type RankedApplicant,
+  type SimulationParams,
+} from '../../domain/types';
 import type { SimulationView } from '../../domain/simulation';
 
 interface RankingSlideProps {
@@ -11,10 +23,19 @@ interface RankingSlideProps {
 }
 
 const priorityLadder = [
-  { label: 'Responsable de Grupo', tone: '#6d28d9' },
-  { label: 'Asistente de Grupo', tone: '#2563eb' },
-  { label: 'Responsable de Unidad', tone: '#0f766e' },
-  { label: 'Otros cargos', tone: '#b45309' },
+  {
+    label: 'Responsable de Grupo',
+    tone: ROLE_META.responsableGrupo.color,
+  },
+  {
+    label: 'Asistente de Grupo',
+    tone: ROLE_META.asistenteGrupo.color,
+  },
+  {
+    label: 'Responsable de Unidad',
+    tone: ROLE_META.responsableUnidad.color,
+  },
+  { label: 'Otros cargos', tone: ROLE_META.otro.color },
 ];
 
 export function RankingSlide({
@@ -36,7 +57,7 @@ export function RankingSlide({
   return (
     <div className="slide-inner">
       <SlideHeading
-        eyebrow="Paso 3.2 · Segundo ordenamiento"
+        eyebrow="Simulación · Segundo ordenamiento"
         title="Cargo, impacto en el Grupo y empates"
         lede="Dentro de cada balde socioeconómico, el orden se define por el cargo vigente. Si dos personas tienen el mismo cargo, se prioriza a quien pertenece al Grupo con menor ratio de Nivel Medio por NNJ. Si la diferencia es mínima, el empate se mantiene y recibirán el mismo monto."
       />
@@ -94,7 +115,7 @@ export function RankingSlide({
 
       <Panel
         title="Ranking definitivo"
-        icon="trophy"
+        icon="list"
         className="table-panel ranking-panel"
         aside={
           <span className="panel-note">
@@ -108,7 +129,7 @@ export function RankingSlide({
         }
       >
         {simulation.ranked.length === 0 ? (
-          <EmptyState title="Todavía no hay ranking" icon="trophy">
+          <EmptyState title="Todavía no hay ranking" icon="list">
             No hay postulantes admisibles. Revisa la regularidad de los Grupos o
             genera nuevas postulaciones.
           </EmptyState>
@@ -138,11 +159,7 @@ export function RankingSlide({
                       }}
                     >
                       <td className="rank-col">
-                        <span
-                          className={`rank-badge ${
-                            member.position <= 3 ? `rank-${member.position}` : ''
-                          }`}
-                        >
+                        <span className="rank-badge">
                           {member.position}
                         </span>
                       </td>

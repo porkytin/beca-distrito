@@ -17,7 +17,7 @@ page.on('console', (message) => {
 page.on('pageerror', (error) => errors.push(`pageerror: ${error.message}`));
 
 // 1) Forzar empates técnicos con tolerancia y umbral máximos.
-await page.goto('http://localhost:5173/?case=ties#paso-5', {
+await page.goto('http://localhost:5173/?case=ties#simulacion/5', {
   waitUntil: 'domcontentloaded',
 });
 await page.waitForTimeout(1200);
@@ -53,7 +53,7 @@ await download.saveAs(`${outDir}/ties.pdf`);
 const emptyPage = await browser.newPage({
   viewport: { width: 1440, height: 1100 },
 });
-await emptyPage.goto('http://localhost:5173/?case=empty#paso-4', {
+await emptyPage.goto('http://localhost:5173/?case=empty#simulacion/4', {
   waitUntil: 'domcontentloaded',
 });
 await emptyPage.waitForTimeout(900);
@@ -78,7 +78,7 @@ await emptyPage.screenshot({ path: `${outDir}/empty-report-page.png` });
 // 3) Móvil actualizado.
 const mobile = await browser.newPage({ viewport: { width: 390, height: 844 } });
 for (const index of [0, 8, 9]) {
-  await mobile.goto(`http://localhost:5173/?mobile=${index}#paso-${index}`, {
+  await mobile.goto(`http://localhost:5173/?mobile=${index}#simulacion/${index}`, {
     waitUntil: 'domcontentloaded',
   });
   await mobile.waitForTimeout(1600);
@@ -95,7 +95,7 @@ await page.screenshot({ path: `${outDir}/final-params.png` });
 const inputPage = await browser.newPage({
   viewport: { width: 1440, height: 1000 },
 });
-await inputPage.goto('http://localhost:5173/?case=inputs#paso-3', {
+await inputPage.goto('http://localhost:5173/?case=inputs#simulacion/3', {
   waitUntil: 'domcontentloaded',
 });
 await inputPage.waitForTimeout(900);
@@ -108,7 +108,7 @@ const costWhileTyping = await courseCost.inputValue();
 await courseCost.blur();
 const costAfterBlur = await courseCost.inputValue();
 
-await inputPage.goto('http://localhost:5173/?case=inputs#paso-1', {
+await inputPage.goto('http://localhost:5173/?case=inputs#simulacion/1', {
   waitUntil: 'domcontentloaded',
 });
 await inputPage.waitForTimeout(800);
@@ -128,6 +128,67 @@ const seedLeadingZero = await seedInput.inputValue();
 await seedInput.blur();
 const seedAfterLeadingZero = await seedInput.inputValue();
 
+// 6) Modo de cálculo: alta manual, resultado y documentos.
+const calcPage = await browser.newPage({
+  viewport: { width: 1440, height: 1000 },
+});
+calcPage.on('pageerror', (error) =>
+  errors.push(`calc pageerror: ${error.message}`),
+);
+await calcPage.goto('http://localhost:5173/#calculo/datos', {
+  waitUntil: 'domcontentloaded',
+});
+await calcPage.evaluate(() => localStorage.clear());
+await calcPage.reload({ waitUntil: 'domcontentloaded' });
+await calcPage.waitForTimeout(500);
+
+await calcPage.getByRole('button', { name: 'Agregar Grupo' }).click();
+await calcPage.getByLabel('Nombre del Grupo 1').fill('Grupo Los Robles');
+await calcPage.getByLabel('NNJ de Grupo Los Robles').fill('40');
+await calcPage.getByLabel('Nivel Medio de Grupo Los Robles').fill('2');
+await calcPage.getByRole('button', { name: 'Agregar postulación' }).click();
+await calcPage.getByLabel('Nombre de P-01').fill('Ana Pérez');
+await calcPage.getByLabel('Cargo de Ana Pérez').selectOption('responsableGrupo');
+await calcPage.getByLabel('RSH de Ana Pérez').fill('12');
+
+await calcPage.getByRole('tab', { name: 'Parámetros' }).click();
+await calcPage.waitForTimeout(300);
+await calcPage.getByLabel('Fondo anual de becas').fill('100000');
+await calcPage.getByLabel('Costo del Curso Medio').fill('250000');
+await calcPage.getByRole('tab', { name: 'Resultado' }).click();
+await calcPage.waitForTimeout(500);
+
+const calcRows = await calcPage.locator('.result-table tbody tr').count();
+const calcAmount = await calcPage
+  .locator('.result-table tbody tr .amount-cell')
+  .first()
+  .textContent();
+const calcCoverage = await calcPage
+  .locator('.calc-summary strong')
+  .last()
+  .textContent();
+
+const calcPdfPromise = calcPage.waitForEvent('download');
+await calcPage.getByRole('button', { name: 'Descargar PDF' }).click();
+const calcPdf = await calcPdfPromise;
+await calcPdf.saveAs(`${outDir}/calculo.pdf`);
+
+const calcCsvPromise = calcPage.waitForEvent('download');
+await calcPage.getByRole('button', { name: 'Exportar CSV' }).click();
+const calcCsv = await calcCsvPromise;
+await calcCsv.saveAs(`${outDir}/nomina.csv`);
+
+await calcPage.reload({ waitUntil: 'domcontentloaded' });
+await calcPage.waitForTimeout(500);
+await calcPage.getByRole('tab', { name: /Datos/ }).click();
+await calcPage.waitForTimeout(300);
+const persistedGroup = await calcPage
+  .locator('.editor-table')
+  .first()
+  .locator('tbody tr td input')
+  .first()
+  .inputValue();
+
 console.log(
   JSON.stringify(
     {
@@ -146,6 +207,14 @@ console.log(
         seedAfterBlur,
         seedLeadingZero,
         seedAfterLeadingZero,
+      },
+      calculation: {
+        calcRows,
+        calcAmount,
+        calcCoverage,
+        persistedGroup,
+        pdfSize: fs.statSync(`${outDir}/calculo.pdf`).size,
+        csvSize: fs.statSync(`${outDir}/nomina.csv`).size,
       },
       pdfSizes: {
         ties: fs.statSync(`${outDir}/ties.pdf`).size,

@@ -9,7 +9,6 @@ import {
   Stat,
   StatusPill,
 } from '../ui';
-import { useAnimatedNumber } from '../../hooks';
 import { formatNumber, formatPercent, formatRatio } from '../../domain/format';
 import type { Applicant, Group, RandomConfig } from '../../domain/types';
 
@@ -28,17 +27,12 @@ export function GroupsSlide({
   groups,
   applicants,
 }: GroupsSlideProps) {
-  const totalNnj = useAnimatedNumber(
-    groups.reduce((sum, group) => sum + group.nnj, 0),
+  const totalNnj = groups.reduce((sum, group) => sum + group.nnj, 0);
+  const totalNivelMedio = groups.reduce(
+    (sum, group) => sum + group.nivelMedio,
+    0,
   );
-  const totalNivelMedio = useAnimatedNumber(
-    groups.reduce((sum, group) => sum + group.nivelMedio, 0),
-  );
-  const districtRatio =
-    groups.reduce((sum, group) => sum + group.nnj, 0) > 0
-      ? groups.reduce((sum, group) => sum + group.nivelMedio, 0) /
-        groups.reduce((sum, group) => sum + group.nnj, 0)
-      : 0;
+  const districtRatio = totalNnj > 0 ? totalNivelMedio / totalNnj : 0;
   const maxRatio = Math.max(...groups.map((group) => group.ratio), 0.001);
 
   const countByGroup = new Map<number, number>();
@@ -52,17 +46,17 @@ export function GroupsSlide({
   return (
     <div className="slide-inner">
       <SlideHeading
-        eyebrow="Paso 0 · Datos del distrito"
-        title="Los 10 grupos del distrito"
-        lede="El CVD consolida la dotación de cada Grupo: Niños, Niñas y Jóvenes (NNJ) y Guiadoras o Dirigentes con Nivel Medio. Ajusta la aleatoriedad para crear escenarios distintos."
+        eyebrow="Simulación · Datos del distrito"
+        title="Dotación de los Grupos"
+        lede="El CVD consolida la dotación de cada Grupo: Niños, Niñas y Jóvenes (NNJ) y Guiadoras o Dirigentes con Nivel Medio. La semilla y los rangos definen el escenario generado."
       />
 
       <div className="data-layout">
         <aside className="data-sidebar">
           <Panel
-            title="Aleatoriedad"
+            title="Parámetros del escenario"
             icon="shuffle"
-            aside={<span className="panel-badge">Reproducible</span>}
+            aside={<span className="panel-note">Semilla reproducible</span>}
           >
             <div className="seed-control">
               <NumberField
@@ -149,7 +143,7 @@ export function GroupsSlide({
                 step={5}
                 onChange={(value) => updateRandom({ irregularChance: value })}
                 format={(value) => `${formatPercent(value)} de probabilidad`}
-                hint="Se puede ajustar Grupo por Grupo en el Paso 2."
+                hint="Se puede ajustar Grupo por Grupo en la sección Regularidad."
                 accent="var(--rose)"
               />
             </div>
@@ -157,7 +151,7 @@ export function GroupsSlide({
 
           <InfoNote icon="info">
             Los datos son ficticios y se generan localmente. La semilla permite
-            repetir exactamente el mismo escenario en otro momento.
+            reproducir el mismo escenario.
           </InfoNote>
         </aside>
 
@@ -173,7 +167,7 @@ export function GroupsSlide({
               label="Total Nivel Medio"
               value={formatNumber(totalNivelMedio)}
               icon="target"
-              hint="Guiadoras y Dirigentes formados"
+              hint="Guiadoras y Dirigentes con Nivel Medio"
             />
             <Stat
               label="Ratio distrital"
@@ -187,7 +181,7 @@ export function GroupsSlide({
               value={formatNumber(applicants.length)}
               icon="file"
               hint={`${formatNumber(groups.length)} grupos`}
-              accent="var(--violet)"
+              accent="var(--accent)"
             />
           </div>
 

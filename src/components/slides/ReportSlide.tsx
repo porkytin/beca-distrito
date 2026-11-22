@@ -58,7 +58,7 @@ export function ReportSlide({
     <div className="slide-inner">
       <SlideHeading
         eyebrow="Cierre · Reporte"
-        title="La simulación, lista para compartir"
+        title="Informe de la simulación"
         lede="El reporte reúne el escenario generado, los parámetros ratificados, el ranking completo y la asignación por persona y por Grupo. Se descarga como PDF directamente desde tu navegador."
         meta={
           <TypePill tone={noDemand ? 'rose' : 'green'}>
@@ -141,7 +141,6 @@ export function ReportSlide({
               </span>
             </div>
           </div>
-          <div className="report-preview-shadow" />
         </div>
 
         <div className="report-actions">
@@ -151,8 +150,8 @@ export function ReportSlide({
             </div>
             <h3>Descargar reporte PDF</h3>
             <p>
-              Un documento claro para presentar en la Asamblea o compartir con
-              el Equipo Distrital. No se envía información a ningún servidor.
+              Documento de trabajo para la Asamblea o el Equipo Distrital. No
+              se envía información a ningún servidor.
             </p>
 
             <button
@@ -205,7 +204,7 @@ export function ReportSlide({
 
           <InfoNote icon="info">
             Los nombres, Grupos y montos son ficticios. El PDF se genera en tu
-            navegador y no se almacena en ningún lugar.
+            navegador y no se envía a ningún servidor.
           </InfoNote>
         </div>
       </div>

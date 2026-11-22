@@ -56,7 +56,7 @@ export function AllocationSlide({
   return (
     <div className="slide-inner">
       <SlideHeading
-        eyebrow="Paso 3.2 · Asignación de fondos"
+        eyebrow="Simulación · Asignación de fondos"
         title="Del ranking al monto de cada beca"
         lede={
           noDemand
@@ -106,7 +106,7 @@ export function AllocationSlide({
           hint={`${formatNumber(offers)} ${
             offers === 1 ? 'beca con monto' : 'becas con monto'
           }`}
-          accent="var(--violet)"
+          accent="var(--accent)"
         />
         <Stat
           label="Brecha real"
@@ -132,7 +132,7 @@ export function AllocationSlide({
         <>
           <Panel
             title="Asignación por puesto del ranking"
-            icon="trophy"
+            icon="coins"
             className="alloc-chart-panel"
             aside={
               <div className="role-legend alloc-legend">
@@ -193,7 +193,7 @@ export function AllocationSlide({
                             className="alloc-bar"
                             style={{
                               height: `${Math.max(amount > 0 ? 1.5 : 0, height)}%`,
-                              background: `linear-gradient(180deg, ${role.color}, ${role.color}cc)`,
+                              background: role.color,
                               animationDelay: `${Math.min(index, 24) * 32}ms`,
                             }}
                           />

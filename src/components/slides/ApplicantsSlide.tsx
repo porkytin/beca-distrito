@@ -50,17 +50,17 @@ export function ApplicantsSlide({
   return (
     <div className="slide-inner">
       <SlideHeading
-        eyebrow="Paso 0 · Postulaciones"
-        title="Quiénes postulan y cuán vulnerables son"
-        lede="Cada postulante trae su percentil del Registro Social de Hogares y su cargo vigente. El porcentaje RSH se interpreta de 0 a 100: mientras más bajo, mayor es la vulnerabilidad socioeconómica."
+        eyebrow="Simulación · Postulaciones"
+        title="Postulaciones y percentil RSH"
+        lede="Cada postulante tiene un percentil del Registro Social de Hogares y un cargo vigente. El percentil RSH se interpreta de 0 a 100: un valor menor corresponde a mayor vulnerabilidad socioeconómica."
       />
 
       <div className="data-layout">
         <aside className="data-sidebar">
           <Panel
-            title="Aleatoriedad de las postulaciones"
+            title="Parámetros de las postulaciones"
             icon="sliders"
-            aside={<span className="panel-badge">En vivo</span>}
+            aside={<span className="panel-note">Datos generados</span>}
           >
             <div className="control-stack">
               <RangePair
@@ -141,7 +141,7 @@ export function ApplicantsSlide({
           </Panel>
 
           <InfoNote icon="info">
-            Los cargos se sortean con estos pesos. Un Grupo puede tener a lo más
+            Los cargos se asignan con estos pesos. Un Grupo puede tener a lo más
             un Responsable de Grupo y un Asistente de Grupo.
           </InfoNote>
         </aside>
@@ -204,12 +204,12 @@ export function ApplicantsSlide({
           </div>
 
           <Panel
-            title="Nómina de postulantes"
+            title="Nómina de postulaciones"
             icon="file"
             className="table-panel applicants-panel"
             aside={
               <span className="panel-note">
-                Ordenados por Grupo · {formatNumber(applicants.length)} en total
+                Ordenadas por Grupo · {formatNumber(applicants.length)} en total
               </span>
             }
           >
@@ -219,7 +219,7 @@ export function ApplicantsSlide({
                   <Icon name="users" size={24} />
                 </span>
                 <strong>No hay postulaciones</strong>
-                <p>Sube el máximo de postulaciones por Grupo en el paso anterior.</p>
+                <p>Ajusta el máximo de postulaciones por Grupo en la sección anterior.</p>
               </div>
             ) : (
               <div className="table-scroll applicants-scroll">

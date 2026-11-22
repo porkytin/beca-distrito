@@ -40,9 +40,9 @@ export function FundSlide({
   return (
     <div className="slide-inner">
       <SlideHeading
-        eyebrow="Paso 1 · Determinación del fondo"
-        title="¿Cuánto dinero hay para becas?"
-        lede="La Asamblea de Distrito aprueba el fondo anual. En esta simulación puedes fijar el monto y el costo de referencia del Curso Medio para ver qué ocurre cuando el dinero alcanza —o no— para cubrir toda la demanda."
+        eyebrow="Simulación · Determinación del fondo"
+        title="Fondo y costo del Curso Medio"
+        lede="La Asamblea de Distrito aprueba el fondo anual. El monto y el costo de referencia del Curso Medio determinan si el fondo cubre toda la demanda admisible o si debe distribuirse según el ranking."
       />
 
       <div className="fund-layout">
@@ -96,7 +96,7 @@ export function FundSlide({
             </div>
           </Panel>
 
-          <InfoNote icon="info" tone="violet">
+          <InfoNote icon="info">
             La comparación usa{' '}
             <strong>
               {formatNumber(admissible.length)}{' '}
@@ -104,8 +104,8 @@ export function FundSlide({
                 ? 'postulación admisible'
                 : 'postulaciones admisibles'}
             </strong>
-            . Los Grupos irregulares se filtran en el siguiente paso. Si el
-            fondo alcanza, cada persona recibe el 100% del costo.
+            . Las postulaciones de Grupos irregulares se excluyen antes del
+            cálculo. Si el fondo alcanza, cada persona recibe el 100% del costo.
           </InfoNote>
         </div>
 
@@ -191,7 +191,7 @@ export function FundSlide({
                   className="compare-fill"
                   style={{
                     width: `${(requestedAdmissible / maxMoney) * 100}%`,
-                    background: 'var(--violet)',
+                    background: 'var(--accent)',
                   }}
                 />
               </div>

@@ -1,5 +1,5 @@
-import { useId } from 'react';
 import { Icon } from '../Icon';
+import { BigCurve, MiniCurve } from '../CurveChart';
 import {
   InfoNote,
   Panel,
@@ -8,7 +8,6 @@ import {
   Stat,
   TypePill,
 } from '../ui';
-import { curvePoints, curveRatio } from '../../domain/allocation';
 import { formatCLP, formatDecimal, formatPercent } from '../../domain/format';
 import { CURVES, CURVE_META, type SimulationParams } from '../../domain/types';
 import type { SimulationView } from '../../domain/simulation';
@@ -17,162 +16,6 @@ interface ParametersSlideProps {
   params: SimulationParams;
   updateParams: (patch: Partial<SimulationParams>) => void;
   simulation: SimulationView;
-}
-
-function MiniCurve({
-  curve,
-  maxDiff,
-  selected,
-}: {
-  curve: SimulationParams['curve'];
-  maxDiff: number;
-  selected: boolean;
-}) {
-  const points = curvePoints(curve, maxDiff, 24);
-  const width = 92;
-  const height = 40;
-  const pad = 3;
-  const path = points
-    .map(
-      (point, index) =>
-        `${index === 0 ? 'M' : 'L'} ${pad + point.x * (width - pad * 2)} ${
-          pad + (1 - point.y) * (height - pad * 2)
-        }`,
-    )
-    .join(' ');
-
-  return (
-    <svg
-      viewBox={`0 0 ${width} ${height}`}
-      className="mini-curve"
-      role="presentation"
-    >
-      <path
-        d={`${path} L ${width - pad} ${height - pad} L ${pad} ${height - pad} Z`}
-        fill={selected ? 'rgba(109, 40, 217, 0.12)' : 'rgba(36, 17, 65, 0.05)'}
-      />
-      <path
-        d={path}
-        fill="none"
-        stroke={selected ? 'var(--violet)' : 'var(--ink-soft)'}
-        strokeWidth="1.8"
-        strokeLinecap="round"
-      />
-    </svg>
-  );
-}
-
-function BigCurve({
-  curve,
-  maxDiff,
-}: {
-  curve: SimulationParams['curve'];
-  maxDiff: number;
-}) {
-  const gradientId = useId().replace(/:/g, '');
-  const width = 440;
-  const height = 200;
-  const padX = 18;
-  const padY = 22;
-  const points = curvePoints(curve, maxDiff, 80);
-  const path = points
-    .map(
-      (point, index) =>
-        `${index === 0 ? 'M' : 'L'} ${padX + point.x * (width - padX * 2)} ${
-          padY + (1 - point.y) * (height - padY * 2)
-        }`,
-    )
-    .join(' ');
-  const area = `${path} L ${width - padX} ${height - padY} L ${padX} ${
-    height - padY
-  } Z`;
-  const endpoint = curveRatio(maxDiff);
-
-  return (
-    <div className="big-curve-wrap">
-      <svg
-        viewBox={`0 0 ${width} ${height}`}
-        className="big-curve"
-        role="img"
-        aria-label="Curva de asignación según el puesto en el ranking"
-      >
-        {[0, 0.25, 0.5, 0.75, 1].map((tick) => (
-          <line
-            key={tick}
-            x1={padX}
-            x2={width - padX}
-            y1={padY + tick * (height - padY * 2)}
-            y2={padY + tick * (height - padY * 2)}
-            className="curve-grid-line"
-          />
-        ))}
-        <defs>
-          <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#6d28d9" stopOpacity="0.28" />
-            <stop offset="100%" stopColor="#6d28d9" stopOpacity="0.02" />
-          </linearGradient>
-        </defs>
-        <path d={area} fill={`url(#${gradientId})`} />
-        <path
-          key={`${curve}-${maxDiff}`}
-          d={path}
-          fill="none"
-          stroke="var(--violet)"
-          strokeWidth="3"
-          strokeLinecap="round"
-          className="curve-draw"
-        />
-        <circle
-          cx={padX}
-          cy={padY + (1 - 1) * (height - padY * 2)}
-          r="4.5"
-          fill="var(--violet)"
-        />
-        <circle
-          cx={width - padX}
-          cy={padY + (1 - endpoint) * (height - padY * 2)}
-          r="4.5"
-          fill="var(--violet)"
-          opacity="0.7"
-        />
-        <text x={padX} y={height - 4} className="curve-axis-label">
-          1° puesto
-        </text>
-        <text
-          x={width - padX}
-          y={height - 4}
-          textAnchor="end"
-          className="curve-axis-label"
-        >
-          Último puesto
-        </text>
-        <text
-          x={padX + 8}
-          y={padY + 14}
-          className="curve-value-label"
-        >
-          100%
-        </text>
-        <text
-          x={width - padX - 8}
-          y={padY + (1 - endpoint) * (height - padY * 2) - 10}
-          textAnchor="end"
-          className="curve-value-label"
-        >
-          {formatPercent(endpoint * 100, 0)}
-        </text>
-      </svg>
-      <div className="big-curve-foot">
-        <span>
-          Primer lugar recibe el 100% de su asignación relativa; el último,{' '}
-          <strong>{formatPercent(endpoint * 100, 0)}</strong>.
-        </span>
-        <span className="panel-note">
-          Con diferencia máxima de {formatPercent(maxDiff, 0)}
-        </span>
-      </div>
-    </div>
-  );
 }
 
 export function ParametersSlide({
@@ -192,11 +35,11 @@ export function ParametersSlide({
   return (
     <div className="slide-inner">
       <SlideHeading
-        eyebrow="Paso 3.1 · Parámetros del modelo"
+        eyebrow="Simulación · Parámetros del modelo"
         title="Las reglas finas del mecanismo"
         lede="La Comisión de Becas propone estos cuatro parámetros y la Asamblea los ratifica. Cambiarlos no altera los datos: altera cómo se agrupan, desempatan y reparten los mismos postulantes."
         meta={
-          <TypePill tone="violet">
+          <TypePill tone="neutral">
             <Icon name="check" size={14} />
             Propuesta de la Comisión · ratificada por la Asamblea
           </TypePill>
@@ -344,11 +187,11 @@ export function ParametersSlide({
                 simulation.allocation.totalAssigned,
               )} asignados`}
               icon="coins"
-              accent="var(--violet)"
+              accent="var(--accent)"
             />
           </div>
 
-          <InfoNote icon="sparkles" tone="violet">
+          <InfoNote icon="info">
             Los parámetros no cambian el fondo ni los datos: solo la forma en
             que se ordena y reparte. Prueba mover la tolerancia para fusionar
             baldes o cambiar la curva para redistribuir los montos.

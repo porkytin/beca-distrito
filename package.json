@@ -3,7 +3,7 @@
   "private": true,
   "version": "1.0.0",
   "type": "module",
-  "description": "Simulador interactivo del Sistema de Becas de Formación del Distrito",
+  "description": "Cálculo y simulación del Sistema de Becas de Formación del Distrito",
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",

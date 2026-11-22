@@ -11,32 +11,34 @@ import {
 import {
   CURVE_META,
   ROLE_META,
-  type RandomConfig,
   type SimulationParams,
 } from '../domain/types';
 import type { SimulationView } from '../domain/simulation';
 
+type ReportMode = 'simulation' | 'calculation';
+
 interface ReportInput {
   simulation: SimulationView;
   params: SimulationParams;
-  random: RandomConfig;
   generatedAt?: Date;
+  mode?: ReportMode;
+  seed?: number;
 }
 
-const INK = '#241141';
-const VIOLET = '#6d28d9';
-const VIOLET_SOFT = '#f3efff';
-const AMBER = '#d97706';
-const GREEN = '#15803d';
-const ROSE = '#be123c';
-const MUTED = '#6b6478';
-const LINE = '#e7e1f0';
-const PAPER = '#fbf9fe';
+const INK = '#1c2733';
+const ACCENT = '#1f4e79';
+const ACCENT_SOFT = '#eaf1f7';
+const AMBER = '#a15c00';
+const GREEN = '#1f6b45';
+const ROSE = '#a3243b';
+const MUTED = '#6b7785';
+const LINE = '#dde3e9';
+const PAPER = '#f7f9fb';
 const WHITE = '#ffffff';
 
 type Doc = jsPDF;
 
-function sectionTitle(doc: Doc, text: string, y: number, accent = VIOLET) {
+function sectionTitle(doc: Doc, text: string, y: number, accent = ACCENT) {
   doc.setFillColor(accent);
   doc.roundedRect(44, y - 7, 4, 14, 2, 2, 'F');
   doc.setFont('helvetica', 'bold');
@@ -96,7 +98,12 @@ function parameterRow(
   doc.line(x, y + 3.5, x + width, y + 3.5);
 }
 
-function drawHeader(doc: Doc, seed: number, generatedAt: Date) {
+function drawHeader(
+  doc: Doc,
+  mode: ReportMode,
+  seed: number,
+  generatedAt: Date,
+) {
   const pageWidth = doc.internal.pageSize.getWidth();
   doc.setFillColor(INK);
   doc.rect(0, 0, pageWidth, 116, 'F');
@@ -115,15 +122,25 @@ function drawHeader(doc: Doc, seed: number, generatedAt: Date) {
 
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(22);
-  doc.text('Reporte de simulación', 44, 62);
+  doc.text(
+    mode === 'calculation' ? 'Cálculo de asignación' : 'Informe de simulación',
+    44,
+    62,
+  );
 
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(10);
-  doc.setTextColor('#d9cff0');
+  doc.setTextColor('#dce4ea');
   doc.text('Sistema de Becas de Formación', 44, 78);
 
   doc.setFontSize(7.8);
-  doc.text(`Escenario N° ${seed}`, 44, 97);
+  doc.text(
+    mode === 'calculation'
+      ? 'Datos ingresados por la Comisión de Becas'
+      : `Escenario N° ${seed}`,
+    44,
+    97,
+  );
   doc.text(`Generado el ${formatShortDate(generatedAt)}`, pageWidth - 44, 97, {
     align: 'right',
   });
@@ -132,7 +149,7 @@ function drawHeader(doc: Doc, seed: number, generatedAt: Date) {
   doc.roundedRect(44, 106, 42, 3, 1.5, 1.5, 'F');
 }
 
-function drawFooter(doc: Doc, seed: number) {
+function drawFooter(doc: Doc, mode: ReportMode, seed: number) {
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
   const pages = doc.getNumberOfPages();
@@ -146,7 +163,7 @@ function drawFooter(doc: Doc, seed: number) {
     doc.setFontSize(7);
     doc.setTextColor(MUTED);
     doc.text(
-      'Simulador del Sistema de Becas · Documento generado automáticamente',
+      'Sistema de Becas de Formación · Documento generado automáticamente',
       44,
       pageHeight - 27,
     );
@@ -156,7 +173,11 @@ function drawFooter(doc: Doc, seed: number) {
     if (page > 1) {
       doc.setFontSize(7.4);
       doc.setTextColor(MUTED);
-      doc.text(`Escenario N° ${seed}`, 44, 24);
+      doc.text(
+        mode === 'calculation' ? 'Cálculo de asignación' : `Escenario N° ${seed}`,
+        44,
+        24,
+      );
       doc.setDrawColor(LINE);
       doc.line(44, 30, pageWidth - 44, 30);
     }
@@ -166,8 +187,9 @@ function drawFooter(doc: Doc, seed: number) {
 export function buildReport({
   simulation,
   params,
-  random,
   generatedAt = new Date(),
+  mode = 'simulation',
+  seed = 0,
 }: ReportInput): jsPDF {
   const doc = new jsPDF({ unit: 'pt', format: 'a4' });
   const pageWidth = doc.internal.pageSize.getWidth();
@@ -191,7 +213,7 @@ export function buildReport({
     ? Math.min(100, allocation.coverage * 100)
     : 0;
 
-  drawHeader(doc, random.seed, generatedAt);
+  drawHeader(doc, mode, seed, generatedAt);
 
   // Métricas principales
   const gap = 10;
@@ -203,8 +225,8 @@ export function buildReport({
     cardWidth,
     'Fondo disponible',
     formatCLP(params.budget),
-    'Aprobado por la Asamblea',
-    VIOLET,
+    mode === 'calculation' ? 'Monto ingresado' : 'Aprobado por la Asamblea',
+    ACCENT,
   );
   metricCard(
     doc,
@@ -304,12 +326,18 @@ export function buildReport({
   }
 
   // Parámetros
-  sectionTitle(doc, 'Parámetros del modelo', 400);
+  sectionTitle(
+    doc,
+    mode === 'calculation' ? 'Parámetros utilizados' : 'Parámetros del modelo',
+    400,
+  );
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(6.8);
   doc.setTextColor(MUTED);
   doc.text(
-    'Propuesta de la Comisión de Becas · ratificada por la Asamblea de Distrito',
+    mode === 'calculation'
+      ? 'Valores ingresados para el cálculo · Vigencia sujeta a ratificación de la Asamblea'
+      : 'Propuesta de la Comisión de Becas · ratificada por la Asamblea de Distrito',
     margin + contentWidth,
     403,
     { align: 'right' },
@@ -344,8 +372,8 @@ export function buildReport({
 
   // Resultado
   const resultY = 500;
-  doc.setFillColor(VIOLET_SOFT);
-  doc.setDrawColor('#ddd3f5');
+  doc.setFillColor(ACCENT_SOFT);
+  doc.setDrawColor('#dde3e9');
   doc.roundedRect(margin, resultY, contentWidth, 52, 6, 6, 'FD');
 
   doc.setFillColor(noDemand ? ROSE : allocation.caseA ? GREEN : AMBER);
@@ -392,7 +420,9 @@ export function buildReport({
   doc.setFontSize(7);
   doc.setTextColor(MUTED);
   const note = doc.splitTextToSize(
-    'Los datos de este reporte son ficticios y se generaron localmente para explorar el mecanismo. El percentil RSH se interpreta de 0 a 100, donde un valor menor representa mayor vulnerabilidad socioeconómica. Los montos se expresan en pesos chilenos (CLP).',
+    mode === 'calculation'
+      ? 'Los datos fueron ingresados por la Comisión de Becas y se procesaron localmente en el navegador. El percentil RSH se interpreta de 0 a 100, donde un valor menor representa mayor vulnerabilidad socioeconómica. Los montos se expresan en pesos chilenos (CLP). Este documento no constituye por sí solo una adjudicación oficial.'
+      : 'Los datos de este informe son ficticios y se generaron localmente para revisar el mecanismo. El percentil RSH se interpreta de 0 a 100, donde un valor menor representa mayor vulnerabilidad socioeconómica. Los montos se expresan en pesos chilenos (CLP).',
     contentWidth,
   );
   doc.text(note, margin, 578);
@@ -453,19 +483,19 @@ export function buildReport({
       lineWidth: 0.4,
     },
     headStyles: {
-      fillColor: [109, 40, 217],
+      fillColor: [31, 78, 121],
       textColor: 255,
       fontStyle: 'bold',
       fontSize: 7.2,
     },
     footStyles: {
-      fillColor: [243, 239, 255],
+      fillColor: [234, 241, 247],
       textColor: INK,
       fontStyle: 'bold',
       fontSize: 7.6,
     },
     alternateRowStyles: {
-      fillColor: [251, 249, 254],
+      fillColor: [247, 249, 251],
     },
     columnStyles: {
       0: { cellWidth: 34, halign: 'center' },
@@ -479,7 +509,7 @@ export function buildReport({
         data.cell.styles.fontStyle = 'bold';
       }
       if (data.section === 'body' && data.column.index === 6 && data.cell.text[0] === 'Sí') {
-        data.cell.styles.textColor = [180, 83, 9];
+        data.cell.styles.textColor = [161, 92, 0];
         data.cell.styles.fontStyle = 'bold';
       }
     },
@@ -544,19 +574,19 @@ export function buildReport({
       lineWidth: 0.4,
     },
     headStyles: {
-      fillColor: [36, 17, 65],
+      fillColor: [28, 39, 51],
       textColor: 255,
       fontStyle: 'bold',
       fontSize: 7.2,
     },
     footStyles: {
-      fillColor: [243, 239, 255],
+      fillColor: [234, 241, 247],
       textColor: INK,
       fontStyle: 'bold',
       fontSize: 7.4,
     },
     alternateRowStyles: {
-      fillColor: [251, 249, 254],
+      fillColor: [247, 249, 251],
     },
     columnStyles: {
       1: { halign: 'right' },
@@ -570,7 +600,7 @@ export function buildReport({
       if (data.section === 'body' && data.column.index === 4) {
         data.cell.styles.fontStyle = 'bold';
         data.cell.styles.textColor =
-          data.cell.text[0] === 'Regular' ? [21, 128, 61] : [190, 18, 60];
+          data.cell.text[0] === 'Regular' ? [31, 107, 69] : [163, 36, 59];
       }
     },
   });
@@ -598,17 +628,22 @@ export function buildReport({
   );
   doc.text(methodology, margin, noteY + 14);
 
-  drawFooter(doc, random.seed);
+  drawFooter(doc, mode, seed);
   return doc;
 }
 
 export function downloadReport(input: ReportInput): void {
   const doc = buildReport(input);
   const generatedAt = input.generatedAt ?? new Date();
+  const mode = input.mode ?? 'simulation';
   const date = new Intl.DateTimeFormat('en-CA', {
     year: 'numeric',
     month: '2-digit',
     day: '2-digit',
   }).format(generatedAt);
-  doc.save(`simulacion-becas-${input.random.seed}-${date}.pdf`);
+  doc.save(
+    mode === 'calculation'
+      ? `calculo-becas-${date}.pdf`
+      : `simulacion-becas-${input.seed ?? 0}-${date}.pdf`,
+  );
 }

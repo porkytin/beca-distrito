@@ -38,7 +38,7 @@ export function RegularitySlide({
   return (
     <div className="slide-inner">
       <SlideHeading
-        eyebrow="Paso 2 · Condición de regularidad"
+        eyebrow="Simulación · Condición de regularidad"
         title="Solo los Grupos regulares pueden postular"
         lede="Un Grupo queda en situación irregular si mantiene beneficiarios del proceso de hace dos años (N-2) sin su tutoría aprobada por el Verificador. Aquí puedes cambiar el estado de cada Grupo y ver el efecto inmediato en la nómina."
         meta={
@@ -74,7 +74,7 @@ export function RegularitySlide({
           value={formatNumber(admissible.length)}
           icon="users"
           hint="Pasan al mecanismo de asignación"
-          accent="var(--violet)"
+          accent="var(--accent)"
         />
         <Stat
           label="Postulantes excluidos"

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Icon } from './components/Icon';
-import { CoverSlide } from './components/slides/CoverSlide';
+import { Landing } from './components/Landing';
+import { SimulationStart } from './components/slides/SimulationStart';
 import { GroupsSlide } from './components/slides/GroupsSlide';
 import { ApplicantsSlide } from './components/slides/ApplicantsSlide';
 import { FundSlide } from './components/slides/FundSlide';
@@ -10,15 +11,18 @@ import { BucketsSlide } from './components/slides/BucketsSlide';
 import { RankingSlide } from './components/slides/RankingSlide';
 import { AllocationSlide } from './components/slides/AllocationSlide';
 import { ReportSlide } from './components/slides/ReportSlide';
+import { CalcWorkspace, type CalcTab } from './components/calc/CalcWorkspace';
 import { RulesDialog } from './components/RulesDialog';
 import { generateDataset } from './domain/generate';
 import { buildSimulation } from './domain/simulation';
 import { newSeed, clamp } from './domain/random';
 import { DEFAULT_PARAMS, DEFAULT_RANDOM } from './domain/defaults';
+import { normalizeParams } from './domain/manual';
+import { useCalculation } from './useCalculation';
 import type { RandomConfig, SimulationParams } from './domain/types';
 
 const SLIDES = [
-  { label: 'Inicio', short: 'Inicio' },
+  { label: 'Resumen', short: 'Resumen' },
   { label: 'Grupos', short: 'Grupos' },
   { label: 'Postulaciones', short: 'Postulaciones' },
   { label: 'Fondo', short: 'Fondo' },
@@ -30,17 +34,84 @@ const SLIDES = [
   { label: 'Reporte', short: 'Reporte' },
 ];
 
+const CALC_TAB_LABELS: Record<CalcTab, string> = {
+  datos: 'Datos',
+  parametros: 'Parámetros',
+  resultado: 'Resultado',
+};
+
+type Mode = 'start' | 'simulation' | 'calculation';
+
+interface Route {
+  mode: Mode;
+  step: number;
+  tab: CalcTab;
+}
+
+function parseRoute(hash: string): Route {
+  const clean = hash.replace(/^#/, '');
+  const calculation = clean.match(/^calculo(?:\/([a-z]+))?$/);
+  if (calculation) {
+    const tab = calculation[1];
+    return {
+      mode: 'calculation',
+      step: 0,
+      tab:
+        tab === 'parametros' || tab === 'resultado' || tab === 'datos'
+          ? tab
+          : 'datos',
+    };
+  }
+
+  const simulation = clean.match(/^simulacion(?:\/(\d+))?$/);
+  if (simulation) {
+    return {
+      mode: 'simulation',
+      step: simulation[1]
+        ? clamp(Number(simulation[1]), 0, SLIDES.length - 1)
+        : 0,
+      tab: 'datos',
+    };
+  }
+
+  const legacyStep = clean.match(/^paso-(\d+)$/);
+  if (legacyStep) {
+    return {
+      mode: 'simulation',
+      step: clamp(Number(legacyStep[1]), 0, SLIDES.length - 1),
+      tab: 'datos',
+    };
+  }
+
+  return { mode: 'start', step: 0, tab: 'datos' };
+}
+
+function routeHash(route: Route): string {
+  if (route.mode === 'calculation') {
+    return `#calculo/${route.tab}`;
+  }
+  if (route.mode === 'simulation') {
+    return `#simulacion/${route.step}`;
+  }
+  return '#inicio';
+}
+
 export default function App() {
-  const [step, setStep] = useState(() => {
-    const match = window.location.hash.match(/paso-(\d+)/);
-    if (!match) return 0;
-    return clamp(Number(match[1]), 0, SLIDES.length - 1);
-  });
+  const [route, setRoute] = useState<Route>(() =>
+    parseRoute(window.location.hash),
+  );
   const [random, setRandom] = useState<RandomConfig>(DEFAULT_RANDOM);
   const [params, setParams] = useState<SimulationParams>(DEFAULT_PARAMS);
   const [regularity, setRegularity] = useState<Record<number, boolean>>({});
   const [generatedAt] = useState(() => new Date());
   const [rulesOpen, setRulesOpen] = useState(false);
+
+  const {
+    calculation,
+    simulation: calculationSimulation,
+    savedAt,
+    actions: calculationActions,
+  } = useCalculation();
 
   const dataset = useMemo(() => generateDataset(random), [random]);
 
@@ -66,16 +137,10 @@ export default function App() {
     setRandom((previous) => {
       const next = { ...previous, ...patch };
 
-      if (
-        patch.nnjMin !== undefined &&
-        next.nnjMin > next.nnjMax
-      ) {
+      if (patch.nnjMin !== undefined && next.nnjMin > next.nnjMax) {
         next.nnjMax = next.nnjMin;
       }
-      if (
-        patch.nnjMax !== undefined &&
-        next.nnjMax < next.nnjMin
-      ) {
+      if (patch.nnjMax !== undefined && next.nnjMax < next.nnjMin) {
         next.nnjMin = next.nnjMax;
       }
 
@@ -126,55 +191,45 @@ export default function App() {
   };
 
   const updateParams = (patch: Partial<SimulationParams>) => {
-    setParams((previous) => {
-      const next = { ...previous, ...patch };
-      next.budget = Math.max(0, Math.round(next.budget));
-      next.courseCost = Math.max(0, Math.round(next.courseCost));
-      next.tolerance = clamp(next.tolerance, 0, 20);
-      next.maxDiff = clamp(next.maxDiff, 0, 500);
-      next.minRatioDiff = clamp(next.minRatioDiff, 0, 1);
-      return next;
-    });
+    setParams((previous) => normalizeParams({ ...previous, ...patch }));
   };
 
   const regenerate = () => {
     updateRandom({ seed: newSeed() });
   };
 
-  const reset = () => {
+  const resetSimulation = () => {
     setRandom(DEFAULT_RANDOM);
     setParams(DEFAULT_PARAMS);
     setRegularity({});
-    setStep(0);
+    setRoute({ mode: 'simulation', step: 0, tab: 'datos' });
   };
 
-  const download = async () => {
+  const downloadSimulationReport = async () => {
     const { downloadReport } = await import('./report/pdf');
     downloadReport({
       simulation,
       params,
-      random,
+      mode: 'simulation',
+      seed: random.seed,
       generatedAt: new Date(),
     });
   };
 
   useEffect(() => {
-    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
-  }, [step]);
-
-  useEffect(() => {
-    const hash = `#paso-${step}`;
+    const hash = routeHash(route);
     if (window.location.hash !== hash) {
       window.history.replaceState(null, '', hash);
     }
-  }, [step]);
+  }, [route]);
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+  }, [route.mode, route.step, route.tab]);
 
   useEffect(() => {
     const handleHashChange = () => {
-      const match = window.location.hash.match(/paso-(\d+)/);
-      if (match) {
-        setStep(clamp(Number(match[1]), 0, SLIDES.length - 1));
-      }
+      setRoute(parseRoute(window.location.hash));
     };
     window.addEventListener('hashchange', handleHashChange);
     return () => window.removeEventListener('hashchange', handleHashChange);
@@ -182,28 +237,71 @@ export default function App() {
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
+      if (route.mode !== 'simulation') return;
       const target = event.target as HTMLElement;
       if (['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName)) return;
       if (target.closest?.('dialog[open]')) return;
       if (event.key === 'ArrowRight') {
-        setStep((current) => Math.min(SLIDES.length - 1, current + 1));
+        setRoute((current) =>
+          current.mode === 'simulation'
+            ? {
+                ...current,
+                step: Math.min(SLIDES.length - 1, current.step + 1),
+              }
+            : current,
+        );
       } else if (event.key === 'ArrowLeft') {
-        setStep((current) => Math.max(0, current - 1));
+        setRoute((current) =>
+          current.mode === 'simulation'
+            ? { ...current, step: Math.max(0, current.step - 1) }
+            : current,
+        );
       }
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, []);
+  }, [route.mode]);
+
+  const openStart = () => setRoute({ mode: 'start', step: 0, tab: 'datos' });
+  const openSimulation = () =>
+    setRoute({ mode: 'simulation', step: 0, tab: 'datos' });
+  const openCalculation = () =>
+    setRoute({ mode: 'calculation', step: 0, tab: 'datos' });
+  const setCalcTab = (tab: CalcTab) =>
+    setRoute((current) => ({ ...current, mode: 'calculation', tab }));
 
   const goNext = () =>
-    setStep((current) => Math.min(SLIDES.length - 1, current + 1));
-  const goPrevious = () => setStep((current) => Math.max(0, current - 1));
+    setRoute((current) =>
+      current.mode === 'simulation'
+        ? {
+            ...current,
+            step: Math.min(SLIDES.length - 1, current.step + 1),
+          }
+        : current,
+    );
+  const goPrevious = () =>
+    setRoute((current) =>
+      current.mode === 'simulation'
+        ? { ...current, step: Math.max(0, current.step - 1) }
+        : current,
+    );
+
+  const rulesParams =
+    route.mode === 'calculation' ? calculation.params : params;
 
   const renderSlide = () => {
-    switch (step) {
+    switch (route.step) {
       case 0:
         return (
-          <CoverSlide onStart={goNext} onShowRules={() => setRulesOpen(true)} />
+          <SimulationStart
+            random={random}
+            params={params}
+            groups={groups.length}
+            applicants={dataset.applicants.length}
+            regularGroups={simulation.regularGroups}
+            onStart={goNext}
+            onShowRules={() => setRulesOpen(true)}
+          />
         );
       case 1:
         return (
@@ -291,8 +389,8 @@ export default function App() {
             params={params}
             random={random}
             generatedAt={generatedAt}
-            onDownload={download}
-            onReset={reset}
+            onDownload={downloadSimulationReport}
+            onReset={resetSimulation}
           />
         );
       default:
@@ -303,22 +401,53 @@ export default function App() {
   return (
     <div className="app">
       <header className="topbar">
-        <button type="button" className="brand" onClick={() => setStep(0)}>
+        <button
+          type="button"
+          className="brand"
+          onClick={openStart}
+          aria-label="Inicio · Becas Distrito"
+        >
           <span className="brand-mark">
-            <Icon name="sparkles" size={18} />
+            <Icon name="scale" size={18} />
           </span>
           <span className="brand-text">
             <strong>Becas Distrito</strong>
-            <small>Simulador interactivo</small>
+            <small>Sistema de Becas de Formación</small>
           </span>
         </button>
 
         <div className="topbar-right">
+          <nav className="mode-switch" aria-label="Modo de uso">
+            <button
+              type="button"
+              className={route.mode === 'calculation' ? 'is-active' : ''}
+              aria-current={
+                route.mode === 'calculation' ? 'page' : undefined
+              }
+              onClick={openCalculation}
+            >
+              Cálculo
+            </button>
+            <button
+              type="button"
+              className={route.mode === 'simulation' ? 'is-active' : ''}
+              aria-current={route.mode === 'simulation' ? 'page' : undefined}
+              onClick={openSimulation}
+            >
+              Simulación
+            </button>
+          </nav>
+
           <span className="topbar-step">
-            {step === 0
-              ? 'Recorrido guiado'
-              : `Sección ${step} de ${SLIDES.length - 1}`}
+            {route.mode === 'simulation'
+              ? route.step === 0
+                ? 'Resumen'
+                : `Sección ${route.step} de ${SLIDES.length - 1}`
+              : route.mode === 'calculation'
+                ? CALC_TAB_LABELS[route.tab]
+                : 'Inicio'}
           </span>
+
           <button
             type="button"
             className="rules-trigger"
@@ -330,11 +459,12 @@ export default function App() {
             <Icon name="scale" size={15} />
             <span>Reglas</span>
           </button>
-          {step > 0 && (
+
+          {route.mode === 'simulation' && route.step > 0 && (
             <button
               type="button"
               className="icon-button"
-              onClick={reset}
+              onClick={resetSimulation}
               title="Reiniciar simulación"
               aria-label="Reiniciar simulación"
             >
@@ -345,74 +475,108 @@ export default function App() {
       </header>
 
       <main className="main">
-        <div className={`slide ${step === 0 ? 'slide-cover' : ''}`} key={step}>
-          {renderSlide()}
-        </div>
+        {route.mode === 'start' && (
+          <Landing
+            onCalculation={openCalculation}
+            onSimulation={openSimulation}
+            onShowRules={() => setRulesOpen(true)}
+          />
+        )}
+
+        {route.mode === 'simulation' && (
+          <div className="slide" key={route.step}>
+            {renderSlide()}
+          </div>
+        )}
+
+        {route.mode === 'calculation' && (
+          <CalcWorkspace
+            calculation={calculation}
+            simulation={calculationSimulation}
+            savedAt={savedAt}
+            actions={calculationActions}
+            tab={route.tab}
+            onTabChange={setCalcTab}
+          />
+        )}
       </main>
 
-      <footer className="bottom-nav">
-        <div className="progress-track">
-          <span
-            style={{
-              width: `${(step / (SLIDES.length - 1)) * 100}%`,
-            }}
-          />
-        </div>
-        <div className="nav-inner">
-          <button
-            type="button"
-            className="btn btn-quiet nav-arrow"
-            onClick={goPrevious}
-            disabled={step === 0}
-            aria-label="Sección anterior"
-          >
-            <Icon name="arrowLeft" size={18} />
-            <span>Anterior</span>
-          </button>
-
-          <div
-            className="stepper"
-            role="group"
-            aria-label="Secciones de la simulación"
-          >
-            {SLIDES.map((slide, index) => (
-              <button
-                key={slide.label}
-                type="button"
-                aria-current={index === step ? 'step' : undefined}
-                aria-label={slide.label}
-                className={`step ${index === step ? 'is-active' : ''} ${
-                  index < step ? 'is-done' : ''
-                }`}
-                onClick={() => setStep(index)}
-              >
-                <span className="step-dot">
-                  {index < step ? <Icon name="check" size={11} /> : index + 1}
-                </span>
-                <span className="step-label">{slide.short}</span>
-              </button>
-            ))}
+      {route.mode === 'simulation' && (
+        <footer className="bottom-nav">
+          <div className="progress-track">
+            <span
+              style={{
+                width: `${(route.step / (SLIDES.length - 1)) * 100}%`,
+              }}
+            />
           </div>
+          <div className="nav-inner">
+            <button
+              type="button"
+              className="btn btn-quiet nav-arrow"
+              onClick={goPrevious}
+              disabled={route.step === 0}
+              aria-label="Sección anterior"
+            >
+              <Icon name="arrowLeft" size={18} />
+              <span>Anterior</span>
+            </button>
 
-          <button
-            type="button"
-            className="btn btn-primary nav-arrow"
-            onClick={goNext}
-            disabled={step === SLIDES.length - 1}
-            aria-label={
-              step === 0 ? 'Comenzar simulación' : 'Sección siguiente'
-            }
-          >
-            <span>{step === 0 ? 'Comenzar' : 'Siguiente'}</span>
-            <Icon name="arrowRight" size={18} />
-          </button>
-        </div>
-      </footer>
+            <div
+              className="stepper"
+              role="group"
+              aria-label="Secciones de la simulación"
+            >
+              {SLIDES.map((slide, index) => (
+                <button
+                  key={slide.label}
+                  type="button"
+                  aria-current={index === route.step ? 'step' : undefined}
+                  aria-label={slide.label}
+                  className={`step ${index === route.step ? 'is-active' : ''} ${
+                    index < route.step ? 'is-done' : ''
+                  }`}
+                  onClick={() =>
+                    setRoute((current) => ({
+                      ...current,
+                      mode: 'simulation',
+                      step: index,
+                    }))
+                  }
+                >
+                  <span className="step-dot">
+                    {index < route.step ? <Icon name="check" size={11} /> : index + 1}
+                  </span>
+                  <span className="step-label">{slide.short}</span>
+                </button>
+              ))}
+            </div>
+
+            <button
+              type="button"
+              className="btn btn-primary nav-arrow"
+              onClick={goNext}
+              disabled={route.step === SLIDES.length - 1}
+              aria-label="Sección siguiente"
+            >
+              <span>Siguiente</span>
+              <Icon name="arrowRight" size={18} />
+            </button>
+          </div>
+        </footer>
+      )}
 
       <RulesDialog
         open={rulesOpen}
         onClose={() => setRulesOpen(false)}
-        params={params}
+        params={rulesParams}
+        mode={
+          route.mode === 'calculation'
+            ? 'calculation'
+            : route.mode === 'simulation'
+              ? 'simulation'
+              : 'start'
+        }
       />
     </div>
   );

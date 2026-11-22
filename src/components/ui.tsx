@@ -222,7 +222,7 @@ export function RangeField({
         <output
           htmlFor={id}
           className="field-value"
-          style={{ color: accent ?? 'var(--violet)' }}
+          style={{ color: accent ?? 'var(--accent)' }}
         >
           {format(value)}
         </output>
@@ -238,7 +238,7 @@ export function RangeField({
         style={
           {
             '--fill': `${percentage}%`,
-            '--range-accent': accent ?? 'var(--violet)',
+            '--range-accent': accent ?? 'var(--accent)',
           } as CSSProperties
         }
       />
@@ -317,7 +317,7 @@ export function TypePill({
   tone = 'neutral',
 }: {
   children: ReactNode;
-  tone?: 'neutral' | 'violet' | 'green' | 'amber' | 'rose';
+  tone?: 'neutral' | 'green' | 'amber' | 'rose';
 }) {
   return <span className={`type-pill tone-${tone}`}>{children}</span>;
 }
@@ -329,7 +329,7 @@ export function InfoNote({
 }: {
   children: ReactNode;
   icon?: IconName;
-  tone?: 'neutral' | 'violet' | 'amber' | 'green';
+  tone?: 'neutral' | 'amber' | 'green';
 }) {
   return (
     <div className={`info-note tone-${tone}`}>
